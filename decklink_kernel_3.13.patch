@@ -1,0 +1,40 @@
+diff -rupN orig/blackmagic_core.c patched/blackmagic_core.c
+--- orig/blackmagic_core.c	2015-02-10 14:03:51.719078026 +0100
++++ patched/blackmagic_core.c	2015-02-10 14:03:12.698310730 +0100
+@@ -341,9 +341,9 @@ blackmagic_probe(struct pci_dev *pdev, c
+ 	pci_enable_device(pdev);
+ 	pci_set_master(pdev);
+ 
+-	if (pci_set_dma_mask(pdev, DMA_64BIT_MASK) < 0)
++	if (pci_set_dma_mask(pdev, DMA_BIT_MASK(64)) < 0)
+ 	{
+-		if (pci_set_dma_mask(pdev, DMA_32BIT_MASK) < 0)
++		if (pci_set_dma_mask(pdev, DMA_BIT_MASK(32)) < 0)
+ 			goto fail;
+ 	}
+ 	
+diff -rupN orig/blackmagic_lib.c patched/blackmagic_lib.c
+--- orig/blackmagic_lib.c	2015-02-10 14:03:51.734078319 +0100
++++ patched/blackmagic_lib.c	2015-02-10 14:03:12.704310849 +0100
+@@ -60,7 +60,10 @@ const int bmd_verify_write = VERIFY_WRIT
+ 
+ static struct kmem_cache *__dl_wait_queue_cache = NULL;
+ static LIST_HEAD(__dl_wait_queue_list);
+-static spinlock_t __dl_wait_queue_list_lock = SPIN_LOCK_UNLOCKED;
++
++// static spinlock_t __dl_wait_queue_list_lock = SPIN_LOCK_UNLOCKED;
++static DEFINE_SPINLOCK(__dl_wait_queue_list_lock);
++
+ 
+ struct dl_wait_queue_head_t
+ {
+@@ -730,7 +733,8 @@ dl_kernel_fpu_begin()
+ 	
+ 	preempt_disable();
+ 	
+-	if (thread->status & TS_USEDFPU)
++//	if (thread->status & TS_USEDFPU)
++	if (thread->task->thread.fpu.has_fpu)
+ 	{
+ 
+ #if defined(__x86_64__)
